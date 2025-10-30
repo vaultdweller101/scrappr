@@ -20,3 +20,7 @@ Quick start:
 Notes:
 - Export to PDF uses html2canvas + jsPDF.
 - Export to Word uses html-docx-js and file-saver.
+
+# Demo here:
+
+[![Demo](https://img.youtube.com/vi/t5cJEN5DwcY/0.jpg)](https://www.youtube.com/watch?v=t5cJEN5DwcY)
