@@ -38,7 +38,8 @@
   font-size: 1rem;
   font-weight: 500;
   color: #2563eb;
-  padding: 2px 0;
+  padding: 2px 6px;
+  border-radius: 4px;
   outline: none;
 }
 
@@ -46,9 +47,8 @@
   font-size: 1rem;
   font-weight: 500;
   color: #2563eb;
-  border: 1px solid var(--border);
-  border-radius: 4px;
   padding: 2px 6px;
+  border-radius: 4px;
   outline: none;
 }
 
@@ -123,7 +123,7 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
   cursor:pointer
 }
 
-.editor, .notes-editor{
+.editor{
   min-height:70vh;
   border:1px solid #585859; 
   padding:12px;
@@ -131,7 +131,7 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
   background:linear-gradient(180deg,#fff,#fbfdff)
 }
 
-.editor:focus, .notes-editor:focus{
+.editor:focus{
   outline:2px solid var(--accent-light)
 }
 
@@ -187,29 +187,46 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
   color: #64748b;
 }
 
+/* --- MODIFIED --- */
+
+/* NEW: This creates the 5-column grid */
+.saved-notes-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  min-height: 60vh;
+}
+
+/* This styles each item in the grid as a "tall card" */
 .saved-note {
-  padding: 8px;
+  padding: 12px;
   background: white;
   border: 1px solid var(--border);
-  border-radius: 4px;
-  margin-bottom: 4px;
+  border-radius: 6px;
   font-size: 0.875rem;
   display: flex;
+  flex-direction: column; /* Stack content and actions vertically */
   justify-content: space-between;
-  align-items: flex-start;
   gap: 8px;
+  min-height: 120px; /* This makes the card "tall" */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  /* Removed margin-bottom, as 'gap' from the grid handles spacing */
 }
 
 .note-content {
-  flex: 1;
+  flex: 1; /* This makes the content area grow, pushing actions down */
   min-width: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .note-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between; /* Puts date on left, delete on right */
+  width: 100%; /* Make actions bar span the full width */
 }
+/* --- END MODIFICATIONS --- */
 
 .note-date {
   color: #94a3b8;
@@ -237,4 +254,88 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
 
 .saved-note:hover .delete-note {
   opacity: 1;
+}
+
+/* Modal Styles (Unchanged) */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5); /* Dark overlay */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-content {
+  background: var(--panel);
+  padding: 2vw 2vw;
+  border-radius: 8px; /* Rounded corners like your example */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  width: 90vw;
+  max-width: 800px;
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-content h3 {
+  font-size: 1.125rem;
+  color: var(--text);
+  margin: 0;
+}
+
+.modal-textarea {
+  width: 95%;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: none; /* Disable manual resize */
+  flex-grow: 1;
+  min-height: 300px;
+}
+
+.modal-textarea:focus {
+  outline: 2px solid var(--accent-light);
+  border-color: var(--accent);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.modal-button.save-note {
+  background: var(--accent);
+  color: white;
+}
+
+.modal-button.save-note:hover {
+  background: #2563eb; /* Darker accent */
+}
+
+.modal-button.cancel-note {
+  background: #f1f5f9; /* Light gray */
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.modal-button.cancel-note:hover {
+  background: #e2e8f0; /* Darker gray */
 }

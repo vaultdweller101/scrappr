@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 export interface SavedNote {
   id: string;
@@ -11,9 +11,9 @@ interface NotesProps {
 }
 
 export default function Notes({ onNotesChange }: NotesProps) {
-  const [currentNote, setCurrentNote] = useState('')
   const [savedNotes, setSavedNotes] = useState<SavedNote[]>([])
-  const notesRef = useRef<HTMLDivElement>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [newNoteContent, setNewNoteContent] = useState('')
 
   // Load saved notes from localStorage on mount
   useEffect(() => {
@@ -25,20 +25,26 @@ export default function Notes({ onNotesChange }: NotesProps) {
     }
   }, [onNotesChange])
 
-  // Handle note content changes
-  const handleNotesChange = () => {
-    if (!notesRef.current) return
-    const content = notesRef.current.innerText
-    setCurrentNote(content)
+  // Open the modal
+  const openNewNoteModal = () => {
+    setNewNoteContent('')
+    setIsModalOpen(true)
   }
 
-  // Save current note and clear editor
-  const saveNote = () => {
-    if (!currentNote.trim()) return
+  // Close the modal
+  const closeNewNoteModal = () => {
+    setIsModalOpen(false)
+  }
+
+  // Save new note from modal
+  const handleSaveNote = () => {
+    if (!newNoteContent || !newNoteContent.trim()) {
+      return // Don't save empty notes
+    }
     
     const newNote: SavedNote = {
       id: Date.now().toString(),
-      content: currentNote,
+      content: newNoteContent,
       timestamp: Date.now()
     }
     
@@ -47,11 +53,7 @@ export default function Notes({ onNotesChange }: NotesProps) {
     localStorage.setItem('scrappr-saved-notes', JSON.stringify(updatedNotes))
     onNotesChange(updatedNotes)
     
-    // Clear current note
-    setCurrentNote('')
-    if (notesRef.current) {
-      notesRef.current.innerText = ''
-    }
+    closeNewNoteModal()
   }
 
   // Delete a saved note
@@ -68,46 +70,63 @@ export default function Notes({ onNotesChange }: NotesProps) {
 
   return (
     <div className="notes-container">
-      <h2>Ideas &amp; Notes</h2>
       <div className="notes-toolbar">
-        <button onClick={saveNote} className="save-note">
+        {/* This button now opens the modal */}
+        <button onClick={openNewNoteModal} className="save-note">
           Save Note
         </button>
       </div>
       
-      <div 
-        ref={notesRef}
-        className="notes-editor"
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleNotesChange}
-        aria-label="Notes editor"
-      />
-      
       <div className="saved-notes">
         <h3>Saved Notes ({savedNotes.length})</h3>
-        {savedNotes.map(note => (
-          <div key={note.id} className="saved-note">
-            <div className="note-content">
-              {note.content.slice(0, 100)}
-              {note.content.length > 100 ? '...' : ''}
-            </div>
-            <div className="note-actions">
-              <div className="note-date">
-                {new Date(note.timestamp).toLocaleDateString()}
+        {/* MODIFIED: Re-added the grid container div */}
+        <div className="saved-notes-grid">
+          {savedNotes.map(note => (
+            <div key={note.id} className="saved-note">
+              <div className="note-content">
+                {note.content}
               </div>
-              <button 
-                onClick={() => deleteNote(note.id)}
-                className="delete-note"
-                title="Delete this note"
-                aria-label="Delete note"
-              >
-                ×
+              <div className="note-actions">
+                <div className="note-date">
+                  {new Date(note.timestamp).toLocaleDateString()}
+                </div>
+                <button 
+                  onClick={() => deleteNote(note.id)}
+                  className="delete-note"
+                  title="Delete this note"
+                  aria-label="Delete note"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* New Note Modal (Unchanged) */}
+      {isModalOpen && (
+        <div className="modal-overlay" onClick={closeNewNoteModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>New Note</h3>
+            <textarea
+              className="modal-textarea"
+              value={newNoteContent}
+              onChange={(e) => setNewNoteContent(e.target.value)}
+              placeholder="Start writing your note..."
+              autoFocus
+            />
+            <div className="modal-actions">
+              <button onClick={closeNewNoteModal} className="modal-button cancel-note">
+                Cancel
+              </button>
+              <button onClick={handleSaveNote} className="modal-button save-note">
+                Save
               </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
