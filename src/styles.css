@@ -1,3 +1,85 @@
+.topbar-horizontal {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  padding: 8px 16px;
+  gap: 16px;
+  height: 64px;
+}
+
+.topbar-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  justify-content: center;
+}
+
+.logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.docname-bar {
+  display: flex;
+  align-items: center;
+  height: auto;
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #2563eb;
+  padding: 0;
+}
+
+.docname-display {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #2563eb;
+  padding: 2px 0;
+  outline: none;
+}
+
+.docname-input {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #2563eb;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  outline: none;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  background: none;
+  border-bottom: none;
+  padding: 0;
+  height: auto;
+  gap: 12px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.tab.active {
+  background: none;
+  color: #2563eb;
+  font-weight: 600;
+}
+
 :root{
   --bg: #f7fafc;
   --panel: #ffffff;
@@ -7,18 +89,27 @@
   --border: #e6eef9;
 }
 
-body{font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); color:var(--text); margin:0}
+body {
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+}
+
 .app{max-width:1200px;margin:32px auto;padding:16px}
-header h1{margin:0 0 24px 0}
+
 h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
 
-.split-layout{display:grid;grid-template-columns:2fr 1fr;gap:24px}
+.tab-content {
+  padding: 24px 0 0 0;
+}
 
-.editor-container, .notes-container{
-  background:var(--panel);
-  border-radius:8px;
-  padding:12px;
-  box-shadow:0 2px 8px rgba(12,13,14,0.06)
+.editor-container, .notes-container {
+  background: var(--panel);
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  border: none;
 }
 
 .controls{display:flex;gap:8px;align-items:center;margin-bottom:8px}

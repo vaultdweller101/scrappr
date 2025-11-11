@@ -5,13 +5,14 @@ import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
 import { SavedNote } from './Notes'
 
+
 interface EditorProps {
   savedNotes: SavedNote[];
+  docName: string;
 }
 
-export default function Editor({ savedNotes }: EditorProps) {
+export default function Editor({ savedNotes, docName }: EditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null)
-  const [filename, setFilename] = useState('document')
   const [suggestions, setSuggestions] = useState<SavedNote[]>([])
 
   const exportPDF = async () => {
@@ -25,7 +26,7 @@ export default function Editor({ savedNotes }: EditorProps) {
     const pdfWidth = pdf.internal.pageSize.getWidth()
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-    pdf.save(`${filename}.pdf`)
+    pdf.save(`${docName || 'document'}.pdf`)
   }
 
   const exportWord = async () => {
@@ -46,7 +47,7 @@ export default function Editor({ savedNotes }: EditorProps) {
     })
 
     const blob = await Packer.toBlob(doc)
-    saveAs(blob, `${filename}.docx`)
+    saveAs(blob, `${docName || 'document'}.docx`)
   }
 
   const setBold = () => document.execCommand('bold')
@@ -60,7 +61,7 @@ export default function Editor({ savedNotes }: EditorProps) {
     }
     
     const matches = savedNotes
-      .filter(note => {
+      .filter((note: SavedNote) => {
         const noteText = note.content.toLowerCase()
         const searchText = text.toLowerCase()
         return noteText.includes(searchText) || 
@@ -84,11 +85,14 @@ export default function Editor({ savedNotes }: EditorProps) {
   return (
     <div className="editor-container">
       <div className="controls">
-        <input value={filename} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilename(e.target.value)} />
         <button onClick={setBold}>Bold</button>
         <button onClick={setItalic}>Italic</button>
-        <button onClick={exportPDF}>Export PDF</button>
-        <button onClick={exportWord}>Export Word</button>
+        <button onClick={exportPDF} title="Print / Export PDF" style={{ padding: 0, background: 'none', border: 'none' }}>
+          <img src="/assets/printer-icon-998.png" alt="Print" style={{ width: 28, height: 28 }} />
+        </button>
+        <button onClick={exportWord} title="Export Word" style={{ padding: 0, background: 'none', border: 'none' }}>
+          <img src="/assets/word-icon-png-4014.png" alt="Export Word" style={{ width: 28, height: 28 }} />
+        </button>
       </div>
 
       {suggestions.length > 0 && (
