@@ -15,19 +15,30 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const [suggestions, setSuggestions] = useState<SavedNote[]>([])
 
+  const formatButtonStyle: React.CSSProperties = {
+    border: 'none',
+    background: 'none',
+    padding: '0 4px',
+    width: '32px',
+    height: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'var(--text)'
+  };
+
   const exportPDF = async () => {
-    if (!editorRef.current) return
-    const el = editorRef.current
-    // Use html2canvas to capture the element
-    const canvas = await html2canvas(el, { scale: 2 })
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
-    const imgProps = pdf.getImageProperties(imgData)
-    const pdfWidth = pdf.internal.pageSize.getWidth()
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-    pdf.save(`${docName || 'document'}.pdf`)
-  }
+    if (!editorRef.current) return;
+    const el = editorRef.current;
+    const canvas = await html2canvas(el, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`${docName || 'document'}.pdf`);
+  };
 
   const exportWord = async () => {
     if (!editorRef.current) return
@@ -52,6 +63,7 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
 
   const setBold = () => document.execCommand('bold')
   const setItalic = () => document.execCommand('italic')
+  const setUnderline = () => document.execCommand('underline')
 
   // Find suggestions based on current document content
   const findSuggestions = (text: string) => {
@@ -62,31 +74,40 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
     
     const matches = savedNotes
       .filter((note: SavedNote) => {
-        const noteText = note.content.toLowerCase()
-        const searchText = text.toLowerCase()
+        const noteText = note.content.toLowerCase();
+        const searchText = text.toLowerCase();
         return noteText.includes(searchText) || 
-               // Check for word-level matches
-               searchText.split(' ').some(word => 
-                 word.length > 2 && noteText.includes(word)
-               )
+          searchText.split(' ').some(word => word.length > 2 && noteText.includes(word));
       })
-      .slice(0, 3) // Limit to top 3 suggestions
-    
-    setSuggestions(matches)
+      .slice(0, 3);
+    setSuggestions(matches);
   }
 
-  // Handle document content changes
+  // Formatting button style and component
+  // Formatting button style and component
+  // Stub for document change handler
   const handleDocumentChange = () => {
-    if (!editorRef.current) return
-    const content = editorRef.current.innerText
-    findSuggestions(content)
+    // Implement document change logic if needed
+  };
+
+  function FormatButton({ onClick, children, extraStyle }: {
+    onClick: () => void,
+    children: React.ReactNode,
+    extraStyle?: React.CSSProperties
+  }) {
+    return (
+      <button onClick={onClick} style={{ ...formatButtonStyle, ...extraStyle }}>
+        {children}
+      </button>
+    );
   }
 
   return (
-    <div className="editor-container">
+    <div>
       <div className="controls">
-        <button onClick={setBold}>Bold</button>
-        <button onClick={setItalic}>Italic</button>
+        <FormatButton onClick={setBold} extraStyle={{ fontWeight: 'bold' }}>B</FormatButton>
+        <FormatButton onClick={setItalic} extraStyle={{ fontStyle: 'italic' }}>I</FormatButton>
+        <FormatButton onClick={setUnderline} extraStyle={{ textDecoration: 'underline' }}>U</FormatButton>
         <button onClick={exportPDF} title="Print / Export PDF" style={{ padding: 0, background: 'none', border: 'none' }}>
           <img src="/assets/printer-icon-998.png" alt="Print" style={{ width: 28, height: 28 }} />
         </button>

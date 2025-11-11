@@ -96,7 +96,7 @@ body {
   margin: 0;
 }
 
-.app{max-width:1200px;margin:32px auto;padding:16px}
+.app{margin:32px auto;padding:16px}
 
 h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
 
@@ -124,8 +124,8 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
 }
 
 .editor, .notes-editor{
-  min-height:180px;
-  border:1px dashed var(--border);
+  min-height:70vh;
+  border:1px solid #585859; 
   padding:12px;
   border-radius:6px;
   background:linear-gradient(180deg,#fff,#fbfdff)
