@@ -23,4 +23,10 @@ Notes:
 
 # Demo here:
 
-[![Demo](https://img.youtube.com/vi/t5cJEN5DwcY/0.jpg)](https://www.youtube.com/watch?v=t5cJEN5DwcY)
+[![Demo](assets/scrappr.png)](https://www.youtube.com/watch?v=t5cJEN5DwcY)
+
+# For development
+
+1. Run eslint to detect issue with TypeScript code
+
+	npx eslint src/

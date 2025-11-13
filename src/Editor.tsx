@@ -18,24 +18,42 @@ function checkSuggestionAtCursor(
   setCursorPosition: React.Dispatch<React.SetStateAction<{x: number, y: number} | null>>,
   findSuggestions: (word: string, sentence: string, savedNotes: SavedNote[], setSuggestions: React.Dispatch<React.SetStateAction<SavedNote[]>>) => void,
   setActiveSuggestionRange: React.Dispatch<React.SetStateAction<{ node: Node, start: number, end: number } | null>>,
-  savedNotes: SavedNote[]
+  savedNotes: SavedNote[],
+  // --- ADD THIS ---
+  setCurrentFontSize: React.Dispatch<React.SetStateAction<string>>
 ) {
   const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
+  if (!selection || selection.rangeCount === 0) { // Simplified check
     setSuggestions([]);
     setCursorPosition(null);
     setActiveSuggestionRange(null);
     return;
   }
+  
+  // Update font size from selection
+  // This runs even if selection is not collapsed (e.g., highlighting)
+  const size = document.queryCommandValue('fontSize');
+  setCurrentFontSize(size || '3'); // '3' is default <p> (12pt)
+
+  if (!selection.isCollapsed) {
+    // Don't show word suggestions if highlighting text
+    setSuggestions([]);
+    setCursorPosition(null);
+    setActiveSuggestionRange(null);
+    return;
+  }
+  
   const range = selection.getRangeAt(0);
-  let node = range.startContainer;
-  let offset = range.startOffset;
+  const node = range.startContainer;
+  const offset = range.startOffset;
+
   if (node.nodeType !== Node.TEXT_NODE) {
     setSuggestions([]);
     setCursorPosition(null);
     setActiveSuggestionRange(null);
     return;
   }
+  
   const textContent = node.textContent || '';
   let start = offset;
   let end = offset;
@@ -47,14 +65,12 @@ function checkSuggestionAtCursor(
   }
   
   const currentWord = textContent.substring(start, end).trim();
-  // Get the entire sentence (or paragraph)
-  const currentSentence = node.textContent || '';
+  const currentSentence = (node.textContent || '').trim();
 
+  // Check the *sentence* length, not just the word's length
   if (currentSentence.length > 2) {
-    // Pass both the word and the sentence
-    findSuggestions(currentWord, currentSentence.trim(), savedNotes, setSuggestions);
+    findSuggestions(currentWord, currentSentence, savedNotes, setSuggestions);
     
-    // Position logic
     const rect = range.getBoundingClientRect();
     const editorRect = editorRef.current?.getBoundingClientRect();
     if (!editorRect) return;
@@ -62,7 +78,6 @@ function checkSuggestionAtCursor(
       x: rect.left - editorRect.left,
       y: rect.bottom - editorRect.top + 8,
     });
-    // Range logic
     setActiveSuggestionRange({ node, start, end });
   } else {
     setSuggestions([]);
@@ -124,7 +139,7 @@ function findSuggestions(
   setSuggestions(topNotes);
 }
 
-// Handle suggestion click
+// (handleSuggestionClick function remains unchanged from your file)
 function handleSuggestionClick(
   noteContent: string,
   activeSuggestionRange: { node: Node, start: number, end: number } | null,
@@ -148,21 +163,32 @@ function handleSuggestionClick(
   editorRef.current.focus();
 }
 
+
 export default function Editor({ savedNotes, docName }: EditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const [suggestions, setSuggestions] = useState<SavedNote[]>([])
-  // Add state for cursor position
   const [cursorPosition, setCursorPosition] = useState<{ x: number, y: number } | null>(null);
   const [activeSuggestionRange, setActiveSuggestionRange] = useState<{ node: Node, start: number, end: number } | null>(null);
+  const [currentFontSize, setCurrentFontSize] = useState('3'); // 1-7 scale
+  const [fontSizeInput, setFontSizeInput] = useState('12'); // Display value (pt)
 
-  // For the doc load content from localStorage on mount
+  // Load content from localStorage on mount
   useEffect(() => {
     const savedContent = localStorage.getItem('scrappr-doc-content');
-    // Check for `null` specifically (in case content is an empty string)
-    if (editorRef.current && savedContent !== null) {
-      editorRef.current.innerHTML = savedContent;
+    if (editorRef.current) {
+      if (savedContent) { // Only set if there *is* saved content
+        editorRef.current.innerHTML = savedContent;
+      } else {
+        // Otherwise, ensure it's blank
+        editorRef.current.innerHTML = ''; 
+      }
     }
   }, []); // Empty array means this runs only once on mount
+
+  // Sync display input when true state changes
+  useEffect(() => {
+    setFontSizeInput(FONT_MAP[currentFontSize] || '12');
+  }, [currentFontSize]);
 
   const formatButtonStyle: React.CSSProperties = {
     border: 'none',
@@ -173,7 +199,8 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: 'var(--text)'
+    color: 'var(--text)',
+    cursor: 'pointer' // Ensure it's clickable
   };
 
   const exportPDF = async () => {
@@ -218,62 +245,179 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const setJustifyRight = () => document.execCommand('justifyRight')
   const setJustifyFull = () => document.execCommand('justifyFull')
   
-  const increaseFontSize = () => document.execCommand('increaseFontSize')
-  const decreaseFontSize = () => document.execCommand('decreaseFontSize')
+  // Maps the 1-7 scale to common point sizes for display
+  const FONT_MAP: { [key: string]: string } = {
+    '1': '8',
+    '2': '10',
+    '3': '12',
+    '4': '14',
+    '5': '18',
+    '6': '24',
+    '7': '36',
+  };
+
+  const PT_TO_SCALE_MAP: { [key: string]: string } = {
+    '8': '1',
+    '10': '2',
+    '12': '3',
+    '14': '4',
+    '18': '5',
+    '24': '6',
+    '36': '7',
+  };
+
+  const increaseFontSize = () => {
+    // Get the new size, clamped between 1 and 7
+    const newSize = Math.min(7, Number(currentFontSize) + 1);
+    document.execCommand('fontSize', false, newSize.toString());
+    setCurrentFontSize(newSize.toString());
+  }
+  const decreaseFontSize = () => {
+    // Get the new size, clamped between 1 and 7
+    const newSize = Math.max(1, Number(currentFontSize) - 1);
+    document.execCommand('fontSize', false, newSize.toString());
+    setCurrentFontSize(newSize.toString());
+  }
+
+  // When the input value changes (user is typing)
+  const handleFontSizeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFontSizeInput(e.target.value);
+  };
+
+  // When the user blurs the input
+  const handleFontSizeInputBlur = () => {
+    // Revert to the "true" state's display value
+    setFontSizeInput(FONT_MAP[currentFontSize] || '12');
+  };
+
+  // When the user hits Enter in the input
+  const handleFontSizeInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Stop form submission/newline
+      
+      const ptSize = fontSizeInput.replace('pt', '').trim();
+      let scaleSize = '3'; // Default
+
+      // Find the closest appropriate 1-7 scale size
+      if (PT_TO_SCALE_MAP[ptSize]) {
+        scaleSize = PT_TO_SCALE_MAP[ptSize];
+      } else {
+        // Not a direct match, find closest
+        const numericSize = parseInt(ptSize, 10);
+        if (!isNaN(numericSize)) {
+          if (numericSize <= 8) scaleSize = '1';
+          else if (numericSize <= 10) scaleSize = '2';
+          else if (numericSize <= 12) scaleSize = '3';
+          else if (numericSize <= 14) scaleSize = '4';
+          else if (numericSize <= 18) scaleSize = '5';
+          else if (numericSize <= 24) scaleSize = '6';
+          else scaleSize = '7'; // Max size
+        }
+      }
+
+      // Apply the change
+      document.execCommand('fontSize', false, scaleSize);
+      // Update the "true" state
+      setCurrentFontSize(scaleSize);
+      // Update the display state to the *actual* mapped value
+      setFontSizeInput(FONT_MAP[scaleSize]);
+      // Re-focus the editor
+      editorRef.current?.focus();
+    }
+  };
 
   // Saves content and triggers suggestion check
   const handleEditorInput = () => {
-    // 1. Save content to localStorage
+    // 1. Save content
     if (editorRef.current) {
       localStorage.setItem('scrappr-doc-content', editorRef.current.innerHTML);
     }
-
-    // 2. Run the suggestion logic (as it was before)
+    // 2. Run suggestion logic
     setTimeout(() => checkSuggestionAtCursor(
       editorRef, 
       setSuggestions, 
       setCursorPosition, 
       findSuggestions, 
       setActiveSuggestionRange, 
-      savedNotes
+      savedNotes,
+      setCurrentFontSize // <-- ADD THIS
     ), 0);
   };
 
-  function FormatButton({ onClick, children, extraStyle }: {
+  function FormatButton({ onClick, children, extraStyle, title}: { 
     onClick: () => void,
     children: React.ReactNode,
-    extraStyle?: React.CSSProperties
+    extraStyle?: React.CSSProperties,
+    title?: string,
   }) {
     return (
-      <button onClick={onClick} style={{ ...formatButtonStyle, ...extraStyle }}>
+      <button 
+        onClick={onClick} 
+        title={title} 
+        style={{ ...formatButtonStyle, ...extraStyle }}
+      >
         {children}
       </button>
     );
   }
 
   return (
-    // Added position: 'relative' to contain the absolute modal
     <div style={{ position: 'relative' }}>
       <div className="controls">
-        <FormatButton onClick={setBold} extraStyle={{ fontWeight: 'bold' }}>B</FormatButton>
-        <FormatButton onClick={setItalic} extraStyle={{ fontStyle: 'italic' }}>I</FormatButton>
-        <FormatButton onClick={setUnderline} extraStyle={{ textDecoration: 'underline' }}>U</FormatButton>
+        <FormatButton onClick={setBold} title="Bold (Ctrl+B)" extraStyle={{ fontWeight: 'bold' }}>B</FormatButton>
+        <FormatButton onClick={setItalic} title="Italic (Ctrl+I)" extraStyle={{ fontStyle: 'italic' }}>I</FormatButton>
+        <FormatButton onClick={setUnderline} title="Underline (Ctrl+U)" extraStyle={{ textDecoration: 'underline' }}>U</FormatButton>
         
-        <FormatButton onClick={setJustifyLeft}>
+        <FormatButton onClick={setJustifyLeft} title="Align Left">
           <img src="/assets/align-left.png" alt="Align Left" style={{ width: 20, height: 20, opacity: 0.8 }} />
         </FormatButton>
-        <FormatButton onClick={setJustifyCenter}>
+        <FormatButton onClick={setJustifyCenter} title="Align Center">
           <img src="/assets/align-center.png" alt="Align Center" style={{ width: 20, height: 20, opacity: 0.8 }} />
         </FormatButton>
-        <FormatButton onClick={setJustifyRight}>
+        <FormatButton onClick={setJustifyRight} title="Align Right">
           <img src="/assets/align-right.png" alt="Align Right" style={{ width: 20, height: 20, opacity: 0.8 }} />
         </FormatButton>
-        <FormatButton onClick={setJustifyFull}>
+        <FormatButton onClick={setJustifyFull} title="Align Justify">
           <img src="/assets/align-justify.png" alt="Align Justify" style={{ width: 20, height: 20, opacity: 0.8 }} />
         </FormatButton>
 
-        <FormatButton onClick={decreaseFontSize} extraStyle={{ fontSize: '1.5rem', lineHeight: 1, paddingBottom: '4px' }}>-</FormatButton>
-        <FormatButton onClick={increaseFontSize} extraStyle={{ fontSize: '1.5rem', lineHeight: 1 }}>+</FormatButton>
+        <FormatButton 
+          onClick={decreaseFontSize} 
+          title="Decrease Font Size" 
+          extraStyle={{ fontSize: '1.2rem', lineHeight: 1, padding: '2px 8px', border: '1px solid var(--border)', borderRadius: '4px 0 0 4px', width: 'auto' }}
+        >-</FormatButton>
+        
+        <input 
+          type="text"
+          title="Font size (pt)"
+          value={fontSizeInput}
+          onChange={handleFontSizeInputChange}
+          onKeyDown={handleFontSizeInputKeyDown}
+          onBlur={handleFontSizeInputBlur}
+          onFocus={e => e.target.select()} // Select all text on click
+          style={{ 
+            width: '32px', 
+            textAlign: 'center', 
+            fontSize: '0.9rem', 
+            color: 'var(--text)', 
+            border: '1px solid var(--border)',
+            borderLeft: 'none',
+            borderRight: 'none',
+            padding: '5px 0',
+            lineHeight: 1.4,
+            fontVariantNumeric: 'tabular-nums',
+            outline: 'none',
+            marginLeft: '-1px', // Overlap buttons for seamless look
+            marginRight: '-1px',
+            zIndex: 1 // Ensure input border is on top
+          }}
+        />
+        
+        <FormatButton 
+          onClick={increaseFontSize} 
+          title="Increase Font Size" 
+          extraStyle={{ fontSize: '1.2rem', lineHeight: 1, padding: '2px 8px', border: '1px solid var(--border)', borderRadius: '0 4px 4px 0', width: 'auto' }}
+        >+</FormatButton>
         
         <button onClick={exportPDF} title="Print / Export PDF" style={{ padding: 0, background: 'none', border: 'none' }}>
           <img src="/assets/printer-icon-998.png" alt="Print" style={{ width: 28, height: 28 }} />
@@ -294,13 +438,12 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
           }}
         >
         <h3>Related Notes</h3>
-          {/* Add the new wrapper div here */}
           <div className="suggestions-list">
             {suggestions.map(note => (
               <div 
                 key={note.id}
                 className="suggestion"
-                title="Similar note found"
+                title="Click to insert note"
                 onClick={() => handleSuggestionClick(
                   note.content,
                   activeSuggestionRange,
@@ -324,13 +467,10 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         contentEditable
         suppressContentEditableWarning
         aria-label="Document editor"
-        // We use a timeout to let the DOM update before we check it
         onInput={handleEditorInput}
-        onKeyUp={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes), 0)}
-        onClick={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes), 0)}
+        onKeyUp={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes, setCurrentFontSize), 0)}
+        onClick={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes, setCurrentFontSize), 0)}
       >
-        <h2>Your Document Title</h2>
-        <p>Start writing here...</p>
       </div>
     </div>
   )
