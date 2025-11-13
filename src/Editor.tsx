@@ -16,18 +16,17 @@ function checkSuggestionAtCursor(
   editorRef: React.RefObject<HTMLDivElement>,
   setSuggestions: React.Dispatch<React.SetStateAction<SavedNote[]>>,
   setCursorPosition: React.Dispatch<React.SetStateAction<{x: number, y: number} | null>>,
-  findSuggestions: (word: string) => void,
-  setActiveSuggestionRange: React.Dispatch<React.SetStateAction<{ node: Node, start: number, end: number } | null>>
+  findSuggestions: (word: string, sentence: string, savedNotes: SavedNote[], setSuggestions: React.Dispatch<React.SetStateAction<SavedNote[]>>) => void,
+  setActiveSuggestionRange: React.Dispatch<React.SetStateAction<{ node: Node, start: number, end: number } | null>>,
+  savedNotes: SavedNote[]
 ) {
   const selection = window.getSelection();
-
   if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
     setSuggestions([]);
     setCursorPosition(null);
     setActiveSuggestionRange(null);
     return;
   }
-
   const range = selection.getRangeAt(0);
   let node = range.startContainer;
   let offset = range.startOffset;
@@ -46,9 +45,16 @@ function checkSuggestionAtCursor(
   while (end < textContent.length && textContent[end].match(/\S/)) {
     end++;
   }
+  
   const currentWord = textContent.substring(start, end).trim();
-  if (currentWord.length > 2) {
-    findSuggestions(currentWord);
+  // Get the entire sentence (or paragraph)
+  const currentSentence = node.textContent || '';
+
+  if (currentSentence.length > 2) {
+    // Pass both the word and the sentence
+    findSuggestions(currentWord, currentSentence.trim(), savedNotes, setSuggestions);
+    
+    // Position logic
     const rect = range.getBoundingClientRect();
     const editorRect = editorRef.current?.getBoundingClientRect();
     if (!editorRect) return;
@@ -56,12 +62,90 @@ function checkSuggestionAtCursor(
       x: rect.left - editorRect.left,
       y: rect.bottom - editorRect.top + 8,
     });
+    // Range logic
     setActiveSuggestionRange({ node, start, end });
   } else {
     setSuggestions([]);
     setCursorPosition(null);
     setActiveSuggestionRange(null);
   }
+}
+
+// Helper function to tokenize and normalize text
+function tokenizeAndNormalize(text: string): Set<string> {
+  const words = text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '') // Remove punctuation
+    .split(/\s+/); // Split by spaces
+  const stopWords = new Set([
+    'i', 'a', 'an', 'the', 'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did', 'by', 'for', 'from', 'in', 'of',
+    'on', 'to', 'with', 'and', 'but', 'or', 'so', 'if', 'about', 'at', 'it',
+    'my', 'me', 'you', 'your'
+  ]);
+  return new Set(words.filter(word => word.length > 1 && !stopWords.has(word)));
+}
+
+// findSuggestions function with scoring logic
+function findSuggestions(
+  word: string,
+  sentence: string,
+  savedNotes: SavedNote[],
+  setSuggestions: React.Dispatch<React.SetStateAction<SavedNote[]>>
+) {
+  const searchTokens = tokenizeAndNormalize(sentence);
+  const wordToken = word.toLowerCase();
+  if (searchTokens.size === 0) {
+    setSuggestions([]);
+    return;
+  }
+  const scoredNotes = savedNotes.map(note => {
+    const noteContentLower = note.content.toLowerCase();
+    const noteTokens = tokenizeAndNormalize(noteContentLower);
+    let score = 0;
+    for (const token of searchTokens) {
+      if (noteTokens.has(token)) {
+        score += 1;
+      }
+    }
+    if (noteTokens.has(wordToken)) {
+      score += 3;
+    }
+    if (noteContentLower.includes(sentence)) {
+      score += 10;
+    } else if (noteContentLower.includes(word)) {
+      score += 5;
+    }
+    return { note, score };
+  })
+  .filter(item => item.score > 0)
+  .sort((a, b) => b.score - a.score);
+  const topNotes = scoredNotes.slice(0, 5).map(item => item.note);
+  setSuggestions(topNotes);
+}
+
+// Handle suggestion click
+function handleSuggestionClick(
+  noteContent: string,
+  activeSuggestionRange: { node: Node, start: number, end: number } | null,
+  editorRef: React.RefObject<HTMLDivElement>,
+  setSuggestions: React.Dispatch<React.SetStateAction<SavedNote[]>>,
+  setCursorPosition: React.Dispatch<React.SetStateAction<{x: number, y: number} | null>>,
+  setActiveSuggestionRange: React.Dispatch<React.SetStateAction<{ node: Node, start: number, end: number } | null>>
+) {
+  if (!activeSuggestionRange || !editorRef.current) return;
+  const { node, start, end } = activeSuggestionRange;
+  const range = document.createRange();
+  range.setStart(node, start);
+  range.setEnd(node, end);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  document.execCommand('insertText', false, noteContent + ' ');
+  setSuggestions([]);
+  setCursorPosition(null);
+  setActiveSuggestionRange(null);
+  editorRef.current.focus();
 }
 
 export default function Editor({ savedNotes, docName }: EditorProps) {
@@ -120,49 +204,6 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const setItalic = () => document.execCommand('italic')
   const setUnderline = () => document.execCommand('underline')
 
-  const findSuggestions = (word: string) => {
-    if (!word) {
-      setSuggestions([]);
-      return;
-    }
-    const searchText = word.toLowerCase();
-    const matches = savedNotes
-      .filter((note: SavedNote) => {
-        const noteText = note.content.toLowerCase();
-        // Check if the note's content includes the search word
-        return noteText.includes(searchText);
-      })
-      .slice(0, 100);
-    setSuggestions(matches);
-  };
-
-  const handleSuggestionClick = (noteContent: string) => {
-    if (!activeSuggestionRange || !editorRef.current) return;
-
-    const { node, start, end } = activeSuggestionRange;
-
-    // Create a range to select the word
-    const range = document.createRange();
-    range.setStart(node, start);
-    range.setEnd(node, end);
-
-    // Get the selection and remove any existing ranges
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    selection?.addRange(range); // Select the word
-
-    // Replace it (we add a space for better typing flow)
-    document.execCommand('insertText', false, noteContent + ' ');
-
-    // Hide suggestions and clear the stored range
-    setSuggestions([]);
-    setCursorPosition(null);
-    setActiveSuggestionRange(null);
-
-    // Re-focus the editor
-    editorRef.current.focus();
-  };
-
   function FormatButton({ onClick, children, extraStyle }: {
     onClick: () => void,
     children: React.ReactNode,
@@ -208,7 +249,15 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
                 key={note.id}
                 className="suggestion"
                 title="Similar note found"
-                onClick={() => handleSuggestionClick(note.content)}>
+                onClick={() => handleSuggestionClick(
+                  note.content,
+                  activeSuggestionRange,
+                  editorRef,
+                  setSuggestions,
+                  setCursorPosition,
+                  setActiveSuggestionRange
+                )}
+              >
                 {note.content.slice(0, 100)}
                 {note.content.length > 100 ? '...' : ''}
               </div>
@@ -222,11 +271,11 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        // We use a timeout to let the DOM update before we check it
-        onInput={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange), 0)}
-        onKeyUp={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange), 0)}
-        onClick={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange), 0)}
         aria-label="Document editor"
+        // We use a timeout to let the DOM update before we check it
+        onInput={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes), 0)}
+        onKeyUp={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes), 0)}
+        onClick={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes), 0)}
       >
         <h2>Your Document Title</h2>
         <p>Start writing here...</p>
