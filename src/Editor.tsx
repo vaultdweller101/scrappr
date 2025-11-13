@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
@@ -155,6 +155,15 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const [cursorPosition, setCursorPosition] = useState<{ x: number, y: number } | null>(null);
   const [activeSuggestionRange, setActiveSuggestionRange] = useState<{ node: Node, start: number, end: number } | null>(null);
 
+  // For the doc load content from localStorage on mount
+  useEffect(() => {
+    const savedContent = localStorage.getItem('scrappr-doc-content');
+    // Check for `null` specifically (in case content is an empty string)
+    if (editorRef.current && savedContent !== null) {
+      editorRef.current.innerHTML = savedContent;
+    }
+  }, []); // Empty array means this runs only once on mount
+
   const formatButtonStyle: React.CSSProperties = {
     border: 'none',
     background: 'none',
@@ -203,6 +212,24 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const setBold = () => document.execCommand('bold')
   const setItalic = () => document.execCommand('italic')
   const setUnderline = () => document.execCommand('underline')
+
+  // Saves content and triggers suggestion check
+  const handleEditorInput = () => {
+    // 1. Save content to localStorage
+    if (editorRef.current) {
+      localStorage.setItem('scrappr-doc-content', editorRef.current.innerHTML);
+    }
+
+    // 2. Run the suggestion logic (as it was before)
+    setTimeout(() => checkSuggestionAtCursor(
+      editorRef, 
+      setSuggestions, 
+      setCursorPosition, 
+      findSuggestions, 
+      setActiveSuggestionRange, 
+      savedNotes
+    ), 0);
+  };
 
   function FormatButton({ onClick, children, extraStyle }: {
     onClick: () => void,
@@ -273,7 +300,7 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         suppressContentEditableWarning
         aria-label="Document editor"
         // We use a timeout to let the DOM update before we check it
-        onInput={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes), 0)}
+        onInput={handleEditorInput}
         onKeyUp={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes), 0)}
         onClick={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange, savedNotes), 0)}
       >
