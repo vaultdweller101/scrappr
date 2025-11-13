@@ -151,17 +151,44 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
   cursor: pointer;
 }
 
-.suggestions {
-  margin: 8px 0;
-  padding: 8px;
-  background: #f8fafc;
+/* New styles for the floating suggestions modal */
+.suggestions-modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   border-radius: 6px;
+  min-width: 250px;
+  max-width: 350px;
 }
 
-.suggestions h3 {
+.suggestions-modal h3 {
   font-size: 0.875rem;
-  margin: 0 0 8px;
+  margin: 0;
   color: #64748b;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Re-use the .suggestion style, but make padding more consistent */
+.suggestion {
+  padding: 8px 12px;
+  background: white;
+  border: none; /* Remove individual border */
+  border-bottom: 1px solid var(--border); /* Add separator */
+  margin-bottom: 0; /* Remove margin */
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.suggestions-modal .suggestion:last-child {
+  border-bottom: none;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.suggestion:hover {
+  background: var(--accent-light);
 }
 
 .suggestion {

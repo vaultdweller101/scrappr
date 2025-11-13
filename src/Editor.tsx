@@ -11,9 +11,57 @@ interface EditorProps {
   docName: string;
 }
 
+// Utility: check for suggestion at cursor
+function checkSuggestionAtCursor(
+  editorRef: React.RefObject<HTMLDivElement>,
+  setSuggestions: React.Dispatch<React.SetStateAction<SavedNote[]>>,
+  setCursorPosition: React.Dispatch<React.SetStateAction<{x: number, y: number} | null>>,
+  findSuggestions: (word: string) => void
+) {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
+    setSuggestions([]);
+    setCursorPosition(null);
+    return;
+  }
+  const range = selection.getRangeAt(0);
+  let node = range.startContainer;
+  let offset = range.startOffset;
+  if (node.nodeType !== Node.TEXT_NODE) {
+    setSuggestions([]);
+    setCursorPosition(null);
+    return;
+  }
+  const textContent = node.textContent || '';
+  let start = offset;
+  let end = offset;
+  while (start > 0 && textContent[start - 1].match(/\S/)) {
+    start--;
+  }
+  while (end < textContent.length && textContent[end].match(/\S/)) {
+    end++;
+  }
+  const currentWord = textContent.substring(start, end).trim();
+  if (currentWord.length > 2) {
+    findSuggestions(currentWord);
+    const rect = range.getBoundingClientRect();
+    const editorRect = editorRef.current?.getBoundingClientRect();
+    if (!editorRect) return;
+    setCursorPosition({
+      x: rect.left - editorRect.left,
+      y: rect.bottom - editorRect.top + 8,
+    });
+  } else {
+    setSuggestions([]);
+    setCursorPosition(null);
+  }
+}
+
 export default function Editor({ savedNotes, docName }: EditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const [suggestions, setSuggestions] = useState<SavedNote[]>([])
+  // Add state for cursor position
+  const [cursorPosition, setCursorPosition] = useState<{ x: number, y: number } | null>(null);
 
   const formatButtonStyle: React.CSSProperties = {
     border: 'none',
@@ -42,7 +90,6 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
 
   const exportWord = async () => {
     if (!editorRef.current) return
-    // Convert editor text content into simple paragraphs for docx.
     const text = editorRef.current.innerText || ''
     const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean)
 
@@ -65,29 +112,21 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const setItalic = () => document.execCommand('italic')
   const setUnderline = () => document.execCommand('underline')
 
-  // Find suggestions based on current document content
-  const findSuggestions = (text: string) => {
-    if (!text.trim()) {
-      setSuggestions([])
-      return
+  // REPLACED findSuggestions to be simpler
+  const findSuggestions = (word: string) => {
+    if (!word) {
+      setSuggestions([]);
+      return;
     }
-    
+    const searchText = word.toLowerCase();
     const matches = savedNotes
       .filter((note: SavedNote) => {
         const noteText = note.content.toLowerCase();
-        const searchText = text.toLowerCase();
-        return noteText.includes(searchText) || 
-          searchText.split(' ').some(word => word.length > 2 && noteText.includes(word));
+        // Check if the note's content includes the search word
+        return noteText.includes(searchText);
       })
       .slice(0, 3);
     setSuggestions(matches);
-  }
-
-  // Formatting button style and component
-  // Formatting button style and component
-  // Stub for document change handler
-  const handleDocumentChange = () => {
-    // Implement document change logic if needed
   };
 
   function FormatButton({ onClick, children, extraStyle }: {
@@ -103,7 +142,8 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   }
 
   return (
-    <div>
+    // Added position: 'relative' to contain the absolute modal
+    <div style={{ position: 'relative' }}>
       <div className="controls">
         <FormatButton onClick={setBold} extraStyle={{ fontWeight: 'bold' }}>B</FormatButton>
         <FormatButton onClick={setItalic} extraStyle={{ fontStyle: 'italic' }}>I</FormatButton>
@@ -116,14 +156,23 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         </button>
       </div>
 
-      {suggestions.length > 0 && (
-        <div className="suggestions">
+      {suggestions.length > 0 && cursorPosition && (
+        <div 
+          className="suggestions-modal"
+          style={{
+            position: 'absolute',
+            top: cursorPosition.y,
+            left: cursorPosition.x,
+            zIndex: 10
+          }}
+        >
           <h3>Related Notes</h3>
           {suggestions.map(note => (
             <div 
               key={note.id}
               className="suggestion"
               title="Similar note found"
+              // You could add an onClick here to insert the note text
             >
               {note.content.slice(0, 100)}
               {note.content.length > 100 ? '...' : ''}
@@ -137,7 +186,10 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        onInput={handleDocumentChange}
+        // We use a timeout to let the DOM update before we check it
+        onInput={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions), 0)}
+        onKeyUp={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions), 0)}
+        onClick={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions), 0)}
         aria-label="Document editor"
       >
         <h2>Your Document Title</h2>
