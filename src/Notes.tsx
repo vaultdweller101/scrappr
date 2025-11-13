@@ -10,6 +10,29 @@ interface NotesProps {
   onNotesChange: (notes: SavedNote[]) => void;
 }
 
+function renderNote(note: SavedNote, deleteNote: (id: string) => void) {
+  return (
+    <div key={note.id} className="saved-note">
+      <div className="note-content">
+        {note.content}
+      </div>
+      <div className="note-actions">
+        <div className="note-date">
+          {new Date(note.timestamp).toLocaleDateString()}
+        </div>
+        <button 
+          onClick={() => deleteNote(note.id)}
+          className="delete-note"
+          title="Delete this note"
+          aria-label="Delete note"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Notes({ onNotesChange }: NotesProps) {
   const [savedNotes, setSavedNotes] = useState<SavedNote[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -71,7 +94,6 @@ export default function Notes({ onNotesChange }: NotesProps) {
   return (
     <div className="notes-container">
       <div className="notes-toolbar">
-        {/* This button now opens the modal */}
         <button onClick={openNewNoteModal} className="save-note">
           Save Note
         </button>
@@ -79,32 +101,11 @@ export default function Notes({ onNotesChange }: NotesProps) {
       
       <div className="saved-notes">
         <h3>Saved Notes ({savedNotes.length})</h3>
-        {/* MODIFIED: Re-added the grid container div */}
         <div className="saved-notes-grid">
-          {savedNotes.map(note => (
-            <div key={note.id} className="saved-note">
-              <div className="note-content">
-                {note.content}
-              </div>
-              <div className="note-actions">
-                <div className="note-date">
-                  {new Date(note.timestamp).toLocaleDateString()}
-                </div>
-                <button 
-                  onClick={() => deleteNote(note.id)}
-                  className="delete-note"
-                  title="Delete this note"
-                  aria-label="Delete note"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))}
+          {savedNotes.map(note => renderNote(note, deleteNote))}
         </div>
       </div>
 
-      {/* New Note Modal (Unchanged) */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={closeNewNoteModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
