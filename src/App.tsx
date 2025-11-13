@@ -69,14 +69,21 @@ export default function App() {
         </div>
       </div>
       <main className="tab-content">
-        {activeTab === 'doc' && (
-          <div className="document-section">
-            <Editor savedNotes={savedNotes} docName={docName} />
-          </div>
-        )}
-        {activeTab === 'notes' && (
+        {/* Always render the Doc section, but hide it with CSS */}
+        <div
+          className="document-section"
+          style={{ display: activeTab === 'doc' ? 'block' : 'none' }}
+        >
+          <Editor savedNotes={savedNotes} docName={docName} />
+        </div>
+
+        {/* Always render the Notes section, but hide it with CSS */}
+        <div
+          className="notes-section"
+          style={{ display: activeTab === 'notes' ? 'block' : 'none' }}
+        >
           <Notes onNotesChange={setSavedNotes} />
-        )}
+        </div>
       </main>
     </div>
   )
