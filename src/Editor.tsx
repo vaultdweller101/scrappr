@@ -213,6 +213,14 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const setItalic = () => document.execCommand('italic')
   const setUnderline = () => document.execCommand('underline')
 
+  const setJustifyLeft = () => document.execCommand('justifyLeft')
+  const setJustifyCenter = () => document.execCommand('justifyCenter')
+  const setJustifyRight = () => document.execCommand('justifyRight')
+  const setJustifyFull = () => document.execCommand('justifyFull')
+  
+  const increaseFontSize = () => document.execCommand('increaseFontSize')
+  const decreaseFontSize = () => document.execCommand('decreaseFontSize')
+
   // Saves content and triggers suggestion check
   const handleEditorInput = () => {
     // 1. Save content to localStorage
@@ -250,6 +258,23 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         <FormatButton onClick={setBold} extraStyle={{ fontWeight: 'bold' }}>B</FormatButton>
         <FormatButton onClick={setItalic} extraStyle={{ fontStyle: 'italic' }}>I</FormatButton>
         <FormatButton onClick={setUnderline} extraStyle={{ textDecoration: 'underline' }}>U</FormatButton>
+        
+        <FormatButton onClick={setJustifyLeft}>
+          <img src="/assets/align-left.png" alt="Align Left" style={{ width: 20, height: 20, opacity: 0.8 }} />
+        </FormatButton>
+        <FormatButton onClick={setJustifyCenter}>
+          <img src="/assets/align-center.png" alt="Align Center" style={{ width: 20, height: 20, opacity: 0.8 }} />
+        </FormatButton>
+        <FormatButton onClick={setJustifyRight}>
+          <img src="/assets/align-right.png" alt="Align Right" style={{ width: 20, height: 20, opacity: 0.8 }} />
+        </FormatButton>
+        <FormatButton onClick={setJustifyFull}>
+          <img src="/assets/align-justify.png" alt="Align Justify" style={{ width: 20, height: 20, opacity: 0.8 }} />
+        </FormatButton>
+
+        <FormatButton onClick={decreaseFontSize} extraStyle={{ fontSize: '1.5rem', lineHeight: 1, paddingBottom: '4px' }}>-</FormatButton>
+        <FormatButton onClick={increaseFontSize} extraStyle={{ fontSize: '1.5rem', lineHeight: 1 }}>+</FormatButton>
+        
         <button onClick={exportPDF} title="Print / Export PDF" style={{ padding: 0, background: 'none', border: 'none' }}>
           <img src="/assets/printer-icon-998.png" alt="Print" style={{ width: 28, height: 28 }} />
         </button>
