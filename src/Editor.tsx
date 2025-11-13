@@ -169,6 +169,7 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const [suggestions, setSuggestions] = useState<SavedNote[]>([])
   const [cursorPosition, setCursorPosition] = useState<{ x: number, y: number } | null>(null);
   const [activeSuggestionRange, setActiveSuggestionRange] = useState<{ node: Node, start: number, end: number } | null>(null);
+  const [savedRange, setSavedRange] = useState<Range | null>(null);
   const [currentFontSize, setCurrentFontSize] = useState('3'); // 1-7 scale
   const [fontSizeInput, setFontSizeInput] = useState('12'); // Display value (pt)
 
@@ -236,6 +237,20 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
     saveAs(blob, `${docName || 'document'}.docx`)
   }
 
+  const handleFontSizeInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // 1. Save the current selection from the window
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      // Only save if the selection is inside the editor
+      const range = selection.getRangeAt(0);
+      if (editorRef.current && editorRef.current.contains(range.startContainer)) {
+        setSavedRange(range);
+      }
+    }
+    // 2. Select the text in the input
+    e.target.select();
+  };
+
   const setBold = () => document.execCommand('bold')
   const setItalic = () => document.execCommand('italic')
   const setUnderline = () => document.execCommand('underline')
@@ -298,7 +313,7 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
       const ptSize = fontSizeInput.replace('pt', '').trim();
       let scaleSize = '3'; // Default
 
-      // Find the closest appropriate 1-7 scale size
+      // (Your existing logic to find scaleSize... no changes here)
       if (PT_TO_SCALE_MAP[ptSize]) {
         scaleSize = PT_TO_SCALE_MAP[ptSize];
       } else {
@@ -315,13 +330,24 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         }
       }
 
-      // Apply the change
+      // 1. Restore the saved selection if it exists
+      if (savedRange) {
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(savedRange);
+        setSavedRange(null); // Clear the saved range
+      }
+
+      // 2. Apply the change (now it has a selection to act on)
       document.execCommand('fontSize', false, scaleSize);
-      // Update the "true" state
+      
+      // 3. Update the "true" state
       setCurrentFontSize(scaleSize);
-      // Update the display state to the *actual* mapped value
+      
+      // 4. Update the display state to the *actual* mapped value
       setFontSizeInput(FONT_MAP[scaleSize]);
-      // Re-focus the editor
+      
+      // 5. Re-focus the editor
       editorRef.current?.focus();
     }
   };
@@ -394,7 +420,7 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
           onChange={handleFontSizeInputChange}
           onKeyDown={handleFontSizeInputKeyDown}
           onBlur={handleFontSizeInputBlur}
-          onFocus={e => e.target.select()} // Select all text on click
+          onFocus={handleFontSizeInputFocus} // Select all text on click
           style={{ 
             width: '32px', 
             textAlign: 'center', 
