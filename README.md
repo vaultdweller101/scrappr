@@ -1,32 +1,71 @@
-# scrappr
-An app used for managing ideas and inspirations for writers
+# Scrappr
 
-## scrappr-web (local dev)
+![Scrappr Logo](assets/scrappr.png)
 
-This workspace now includes a small React + Vite app (`scrappr-web`) that provides a simple rich-text editor and export buttons for PDF and Word.
+Scrappr is a smart, distraction-free document editor built with React and TypeScript. It combines a rich-text document editor with an intelligent note-taking system, suggesting relevant notes from your collection in real-time as you write.
 
-Quick start:
+This project was built to be a simple, persistent, and intelligent writing environment that saves your work locally and helps you connect your ideas.
 
-1. Install dependencies:
+***
 
-	npm install
+## Features
 
-2. Start the dev server:
+* **Smart Note Suggestions:** As you type a sentence, a "Related Notes" pop-up appears with relevant notes from your collection, scored by relevance.
+* **Click-to-Insert:** Instantly insert the full content of a suggested note directly into your document.
+* **Persistent Document:** All document content (including formatting) is automatically saved to `localStorage` as you type—never lose your work on a refresh.
+* **Persistent Notes:** A separate "Notes" tab to create, edit, and delete notes. All notes are saved to `localStorage`.
+* **Rich Text Toolbar:**
+    * Bold, Italic, Underline
+    * Left, Center, Right, and Justify alignment
+    * Increase/Decrease font size
+    * Manually type in a specific font size (e.g., 12, 18, 24)
+* **Export Options:** Export your document as a **PDF** or a **Microsoft Word (`.docx`)** file.
 
-	npm run dev
+***
 
-3. Open http://localhost:5173 in your browser.
+## Tech Stack
 
-Notes:
-- Export to PDF uses html2canvas + jsPDF.
-- Export to Word uses html-docx-js and file-saver.
+* **Framework:** React
+* **Language:** TypeScript
+* **Build Tool:** Vite
+* **Document Export:**
+    * `html2canvas` & `jspdf` for PDF export
+    * `docx` & `file-saver` for Word export
+* **Styling:** Plain CSS with CSS Variables
 
-# Demo here:
+***
 
-[![Demo](assets/scrappr.png)](https://www.youtube.com/watch?v=t5cJEN5DwcY)
+## Getting Started
 
-# For development
+To get a local copy up and running, follow these simple steps.
 
-1. Run eslint to detect issue with TypeScript code
+### Prerequisites
 
-	npx eslint src/
+* Node.js (v18 or later recommended)
+* npm (or pnpm/yarn)
+
+### Installation
+
+1.  Clone the repo:
+    ```sh
+    git clone https://github.com/vaultdweller101/scrappr
+    ```
+2.  Navigate to the project directory:
+    ```sh
+    cd scrappr
+    ```
+3.  Install NPM packages:
+    ```sh
+    npm install
+    ```
+4.  Run the development server:
+    ```sh
+    npm run dev
+    ```
+5.  Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
+
+***
+
+## Acknowledgements
+
+* Icons provided by [Flaticon](https://www.flaticon.com/)
