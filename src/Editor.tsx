@@ -16,20 +16,25 @@ function checkSuggestionAtCursor(
   editorRef: React.RefObject<HTMLDivElement>,
   setSuggestions: React.Dispatch<React.SetStateAction<SavedNote[]>>,
   setCursorPosition: React.Dispatch<React.SetStateAction<{x: number, y: number} | null>>,
-  findSuggestions: (word: string) => void
+  findSuggestions: (word: string) => void,
+  setActiveSuggestionRange: React.Dispatch<React.SetStateAction<{ node: Node, start: number, end: number } | null>>
 ) {
   const selection = window.getSelection();
+
   if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
     setSuggestions([]);
     setCursorPosition(null);
+    setActiveSuggestionRange(null);
     return;
   }
+
   const range = selection.getRangeAt(0);
   let node = range.startContainer;
   let offset = range.startOffset;
   if (node.nodeType !== Node.TEXT_NODE) {
     setSuggestions([]);
     setCursorPosition(null);
+    setActiveSuggestionRange(null);
     return;
   }
   const textContent = node.textContent || '';
@@ -51,9 +56,11 @@ function checkSuggestionAtCursor(
       x: rect.left - editorRect.left,
       y: rect.bottom - editorRect.top + 8,
     });
+    setActiveSuggestionRange({ node, start, end });
   } else {
     setSuggestions([]);
     setCursorPosition(null);
+    setActiveSuggestionRange(null);
   }
 }
 
@@ -62,6 +69,7 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const [suggestions, setSuggestions] = useState<SavedNote[]>([])
   // Add state for cursor position
   const [cursorPosition, setCursorPosition] = useState<{ x: number, y: number } | null>(null);
+  const [activeSuggestionRange, setActiveSuggestionRange] = useState<{ node: Node, start: number, end: number } | null>(null);
 
   const formatButtonStyle: React.CSSProperties = {
     border: 'none',
@@ -112,7 +120,6 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
   const setItalic = () => document.execCommand('italic')
   const setUnderline = () => document.execCommand('underline')
 
-  // REPLACED findSuggestions to be simpler
   const findSuggestions = (word: string) => {
     if (!word) {
       setSuggestions([]);
@@ -125,8 +132,35 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         // Check if the note's content includes the search word
         return noteText.includes(searchText);
       })
-      .slice(0, 3);
+      .slice(0, 100);
     setSuggestions(matches);
+  };
+
+  const handleSuggestionClick = (noteContent: string) => {
+    if (!activeSuggestionRange || !editorRef.current) return;
+
+    const { node, start, end } = activeSuggestionRange;
+
+    // Create a range to select the word
+    const range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, end);
+
+    // Get the selection and remove any existing ranges
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range); // Select the word
+
+    // Replace it (we add a space for better typing flow)
+    document.execCommand('insertText', false, noteContent + ' ');
+
+    // Hide suggestions and clear the stored range
+    setSuggestions([]);
+    setCursorPosition(null);
+    setActiveSuggestionRange(null);
+
+    // Re-focus the editor
+    editorRef.current.focus();
   };
 
   function FormatButton({ onClick, children, extraStyle }: {
@@ -166,18 +200,20 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
             zIndex: 10
           }}
         >
-          <h3>Related Notes</h3>
-          {suggestions.map(note => (
-            <div 
-              key={note.id}
-              className="suggestion"
-              title="Similar note found"
-              // You could add an onClick here to insert the note text
-            >
-              {note.content.slice(0, 100)}
-              {note.content.length > 100 ? '...' : ''}
-            </div>
-          ))}
+        <h3>Related Notes</h3>
+          {/* Add the new wrapper div here */}
+          <div className="suggestions-list">
+            {suggestions.map(note => (
+              <div 
+                key={note.id}
+                className="suggestion"
+                title="Similar note found"
+                onClick={() => handleSuggestionClick(note.content)}>
+                {note.content.slice(0, 100)}
+                {note.content.length > 100 ? '...' : ''}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -187,9 +223,9 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
         contentEditable
         suppressContentEditableWarning
         // We use a timeout to let the DOM update before we check it
-        onInput={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions), 0)}
-        onKeyUp={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions), 0)}
-        onClick={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions), 0)}
+        onInput={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange), 0)}
+        onKeyUp={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange), 0)}
+        onClick={() => setTimeout(() => checkSuggestionAtCursor(editorRef, setSuggestions, setCursorPosition, findSuggestions, setActiveSuggestionRange), 0)}
         aria-label="Document editor"
       >
         <h2>Your Document Title</h2>

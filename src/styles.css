@@ -169,28 +169,6 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
   border-bottom: 1px solid var(--border);
 }
 
-/* Re-use the .suggestion style, but make padding more consistent */
-.suggestion {
-  padding: 8px 12px;
-  background: white;
-  border: none; /* Remove individual border */
-  border-bottom: 1px solid var(--border); /* Add separator */
-  margin-bottom: 0; /* Remove margin */
-  border-radius: 0;
-  cursor: pointer;
-  font-size: 0.875rem;
-}
-
-.suggestions-modal .suggestion:last-child {
-  border-bottom: none;
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
-}
-
-.suggestion:hover {
-  background: var(--accent-light);
-}
-
 .suggestion {
   padding: 8px;
   background: white;
@@ -203,6 +181,17 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
 
 .suggestion:hover {
   background: var(--accent-light);
+}
+
+.suggestions-list {
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.suggestions-list .suggestion:last-child {
+  border-bottom: none;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
 }
 
 .saved-notes {
