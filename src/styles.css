@@ -106,7 +106,7 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
 }
 
 .editor-container, .notes-container {
-  background: var(--panel);
+  background: var(--bg);
   border-radius: 0;
   padding: 0;
   box-shadow: none;
@@ -188,14 +188,11 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
   color: #64748b;
 }
 
-/* --- MODIFIED --- */
-
-/* NEW: This creates the 5-column grid */
+/* This creates the 5-column grid */
 .saved-notes-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;
-  min-height: 60vh;
 }
 
 /* This styles each item in the grid as a "tall card" */
