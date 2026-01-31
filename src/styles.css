@@ -353,3 +353,31 @@ h2{font-size:1.25rem;margin:0 0 12px;color:#4a5568}
 .modal-button.cancel-note:hover {
   background: #e2e8f0; /* Darker gray */
 }
+
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the editor and its container */
+  .editor, .editor * {
+    visibility: visible;
+  }
+  
+  /* Position the editor at the top-left of the printed page */
+  .editor {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide the UI elements like the toolbar and tabs */
+  .topbar-horizontal, .controls, .suggestions-modal, .notes-section {
+    display: none !important;
+  }
+}

@@ -1,6 +1,4 @@
 import React, { useRef, useState, useEffect } from 'react'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
 import { SavedNote } from './Notes'
@@ -19,7 +17,6 @@ function checkSuggestionAtCursor(
   findSuggestions: (word: string, sentence: string, savedNotes: SavedNote[], setSuggestions: React.Dispatch<React.SetStateAction<SavedNote[]>>) => void,
   setActiveSuggestionRange: React.Dispatch<React.SetStateAction<{ node: Node, start: number, end: number } | null>>,
   savedNotes: SavedNote[],
-  // --- ADD THIS ---
   setCurrentFontSize: React.Dispatch<React.SetStateAction<string>>
 ) {
   const selection = window.getSelection();
@@ -204,18 +201,16 @@ export default function Editor({ savedNotes, docName }: EditorProps) {
     cursor: 'pointer' // Ensure it's clickable
   };
 
-  const exportPDF = async () => {
-    if (!editorRef.current) return;
-    const el = editorRef.current;
-    const canvas = await html2canvas(el, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`${docName || 'document'}.pdf`);
-  };
+  const exportPDF = () => {
+  // Temporarily set the document title so the PDF filename defaults to your docName
+  const originalTitle = document.title;
+  document.title = docName || 'document';
+  
+  window.print();
+  
+  // Restore original title
+  document.title = originalTitle;
+};
 
   const exportWord = async () => {
     if (!editorRef.current) return
